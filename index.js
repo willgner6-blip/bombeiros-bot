@@ -1,3 +1,10 @@
+const LOG_REGISTROS = '1468076065338425405';
+const CARGOS_OFICIAIS = [
+  'Sub-Comando',
+  'Comando',
+  'Comando Geral'
+];
+
 require('dotenv').config();
 
 const {
@@ -22,6 +29,11 @@ const client = new Client({
     GatewayIntentBits.GuildMembers
   ]
 });
+function isOficial(member) {
+  return member.roles.cache.some(role =>
+    CARGOS_OFICIAIS.includes(role.name)
+  );
+}
 
 // ===== ARQUIVOS =====
 const cargos = JSON.parse(fs.readFileSync('./cargos.json'));
@@ -141,6 +153,19 @@ if (interaction.isModalSubmit() && interaction.customId === 'pedirSetModal') {
 );
 
 canal.send({
+  const logRegistro = interaction.guild.channels.cache.get(LOG_REGISTROS);
+
+if (logRegistro) {
+  logRegistro.send(
+`📝 **NOVO PEDIDO DE SET**
+👤 Usuário: ${interaction.user.tag}
+🆔 ID: ${interaction.user.id}
+🎖️ Cargo solicitado: ${interaction.fields.getTextInputValue('cargo')}
+👮 Recrutador: ${interaction.fields.getTextInputValue('recrutador')}
+🕒 Data: ${new Date().toLocaleString()}`
+  );
+}
+
   embeds: [{
     title: '🚒 PEDIDO DE SET',
     color: 0xff0000,
@@ -167,6 +192,12 @@ if (interaction.isButton()) {
   if (interaction.customId === 'aprovar_set') {
     const cargoNome = embed.fields.find(f => f.name.includes('Cargo')).value;
     const cargo = interaction.guild.roles.cache.find(r => r.name === cargoNome);
+if (!isOficial(interaction.member)) {
+  return interaction.reply({
+    content: '❌ Apenas **OFICIAIS** podem aprovar pedidos de set.',
+    ephemeral: true
+  });
+}
 
     if (!cargo) {
       return interaction.reply({ content: '❌ Cargo não encontrado no servidor.', ephemeral: true });
@@ -182,9 +213,31 @@ if (interaction.isButton()) {
       embeds: []
     });
   }
+const logRegistro = interaction.guild.channels.cache.get(LOG_REGISTROS);
+
+if (logRegistro) {
+  logRegistro.send(
+`✅ **SET APROVADO**
+👤 Usuário: ${membro.user.tag}
+🎖️ Cargo: ${cargoNome}
+👮 Aprovado por: ${interaction.user.tag}
+🕒 Data: ${new Date().toLocaleString()}`
+  );
+}
 
   if (interaction.customId === 'reprovar_set') {
     await membro.send('❌ Seu pedido de set foi **REPROVADO**.').catch(() => {});
+if (interaction.customId === 'reprovar_set') {
+
+  if (!isOficial(interaction.member)) {
+    return interaction.reply({
+      content: '❌ Apenas **OFICIAIS** podem reprovar pedidos de set.',
+      ephemeral: true
+    });
+  }
+
+  // resto do código de reprovação
+}
 
     await interaction.update({
       content: `❌ Pedido reprovado por ${interaction.user}`,
@@ -192,6 +245,17 @@ if (interaction.isButton()) {
       embeds: []
     });
   }
+}
+const logRegistro = interaction.guild.channels.cache.get(LOG_REGISTROS);
+
+if (logRegistro) {
+  logRegistro.send(
+`❌ **SET REPROVADO**
+👤 Usuário: ${membro.user.tag}
+🎖️ Cargo solicitado: ${embed.fields.find(f => f.name.includes('Cargo')).value}
+👮 Reprovado por: ${interaction.user.tag}
+🕒 Data: ${new Date().toLocaleString()}`
+  );
 }
 
 
@@ -298,5 +362,6 @@ http.createServer((req, res) => {
 
 // ===== LOGIN =====
 client.login(process.env.TOKEN);
+
 
 
