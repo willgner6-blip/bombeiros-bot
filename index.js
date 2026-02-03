@@ -1,4 +1,6 @@
 const LOG_REGISTROS = '1468076065338425405';
+const LOG_REGISTROS = '1467818334576971888';
+const LOG_BOMBEIROS = '1467818444790694085';
 const CARGOS_OFICIAIS = [
   'Sub-Comando',
   'Comando',
@@ -362,6 +364,7 @@ http.createServer((req, res) => {
 
 // ===== LOGIN =====
 client.login(process.env.TOKEN);
+
 
 
 
