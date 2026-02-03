@@ -42,6 +42,9 @@ client.once(Events.ClientReady, async () => {
     new SlashCommandBuilder()
       .setName('registrar')
       .setDescription('Registrar bombeiro'),
+new SlashCommandBuilder()
+  .setName('pedirset')
+  .setDescription('Solicitar set/cargo no Bombeiros')
 
     new SlashCommandBuilder()
       .setName('promover')
@@ -76,6 +79,73 @@ client.once(Events.ClientReady, async () => {
 
 // ===== INTERAÇÕES =====
 client.on(Events.InteractionCreate, async interaction => {
+// ===== PEDIR SET =====
+if (interaction.isChatInputCommand() && interaction.commandName === 'pedirset') {
+  const modal = new ModalBuilder()
+    .setCustomId('pedirSetModal')
+    .setTitle('Pedido de Set - Bombeiros');
+
+  const nome = new TextInputBuilder()
+    .setCustomId('nome')
+    .setLabel('Nome')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true);
+
+  const id = new TextInputBuilder()
+    .setCustomId('id')
+    .setLabel('ID')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true);
+
+  const cargo = new TextInputBuilder()
+    .setCustomId('cargo')
+    .setLabel('Cargo desejado')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true);
+
+  const recrutador = new TextInputBuilder()
+    .setCustomId('recrutador')
+    .setLabel('Recrutador')
+    .setStyle(TextInputStyle.Short);
+
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(nome),
+    new ActionRowBuilder().addComponents(id),
+    new ActionRowBuilder().addComponents(cargo),
+    new ActionRowBuilder().addComponents(recrutador)
+  );
+
+  return interaction.showModal(modal);
+}
+
+// ===== ENVIAR PEDIDO DE SET =====
+if (interaction.isModalSubmit() && interaction.customId === 'pedirSetModal') {
+  const canal = interaction.guild.channels.cache.find(c => c.name === 'pedidos-set');
+
+  if (!canal) {
+    return interaction.reply({
+      content: '❌ Canal pedidos-set não encontrado.',
+      ephemeral: true
+    });
+  }
+
+  canal.send({
+    content:
+`🚒 **NOVO PEDIDO DE SET**
+
+👤 Nome: ${interaction.fields.getTextInputValue('nome')}
+🆔 ID: ${interaction.fields.getTextInputValue('id')}
+🎖️ Cargo desejado: ${interaction.fields.getTextInputValue('cargo')}
+👮 Recrutador: ${interaction.fields.getTextInputValue('recrutador')}
+📅 Data: ${new Date().toLocaleString('pt-BR')}
+👤 Discord: ${interaction.user.tag}`
+  });
+
+  return interaction.reply({
+    content: '✅ Pedido de set enviado com sucesso!',
+    ephemeral: true
+  });
+}
 
   // ===== REGISTRO =====
   if (interaction.isChatInputCommand() && interaction.commandName === 'registrar') {
@@ -180,3 +250,4 @@ http.createServer((req, res) => {
 
 // ===== LOGIN =====
 client.login(process.env.TOKEN);
+
