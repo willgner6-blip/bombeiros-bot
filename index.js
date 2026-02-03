@@ -129,23 +129,71 @@ if (interaction.isModalSubmit() && interaction.customId === 'pedirSetModal') {
     });
   }
 
-  canal.send({
-    content:
-`🚒 **NOVO PEDIDO DE SET**
+  const row = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+    .setCustomId('aprovar_set')
+    .setLabel('✅ APROVAR')
+    .setStyle(ButtonStyle.Success),
+  new ButtonBuilder()
+    .setCustomId('reprovar_set')
+    .setLabel('❌ REPROVAR')
+    .setStyle(ButtonStyle.Danger)
+);
 
-👤 Nome: ${interaction.fields.getTextInputValue('nome')}
-🆔 ID: ${interaction.fields.getTextInputValue('id')}
-🎖️ Cargo desejado: ${interaction.fields.getTextInputValue('cargo')}
-👮 Recrutador: ${interaction.fields.getTextInputValue('recrutador')}
-📅 Data: ${new Date().toLocaleString('pt-BR')}
-👤 Discord: ${interaction.user.tag}`
-  });
+canal.send({
+  embeds: [{
+    title: '🚒 PEDIDO DE SET',
+    color: 0xff0000,
+    fields: [
+      { name: '👤 Nome', value: interaction.fields.getTextInputValue('nome') },
+      { name: '🆔 ID', value: interaction.fields.getTextInputValue('id') },
+      { name: '🎖️ Cargo', value: interaction.fields.getTextInputValue('cargo') },
+      { name: '👮 Recrutador', value: interaction.fields.getTextInputValue('recrutador') },
+      { name: '👤 Discord', value: `<@${interaction.user.id}>` }
+    ],
+    footer: { text: `UserID:${interaction.user.id}` }
+  }],
+  components: [row]
+});
+// ===== BOTÕES DE APROVAÇÃO =====
+if (interaction.isButton()) {
+  const embed = interaction.message.embeds[0];
+  if (!embed) return;
 
-  return interaction.reply({
-    content: '✅ Pedido de set enviado com sucesso!',
-    ephemeral: true
-  });
+  const userId = embed.footer.text.replace('UserID:', '');
+  const membro = await interaction.guild.members.fetch(userId).catch(() => null);
+  if (!membro) return interaction.reply({ content: '❌ Usuário não encontrado.', ephemeral: true });
+
+  if (interaction.customId === 'aprovar_set') {
+    const cargoNome = embed.fields.find(f => f.name.includes('Cargo')).value;
+    const cargo = interaction.guild.roles.cache.find(r => r.name === cargoNome);
+
+    if (!cargo) {
+      return interaction.reply({ content: '❌ Cargo não encontrado no servidor.', ephemeral: true });
+    }
+
+    await membro.roles.add(cargo);
+
+    await membro.send(`✅ Seu pedido de set foi **APROVADO**!\n🎖️ Cargo recebido: **${cargoNome}**`).catch(() => {});
+
+    await interaction.update({
+      content: `✅ Pedido aprovado por ${interaction.user}`,
+      components: [],
+      embeds: []
+    });
+  }
+
+  if (interaction.customId === 'reprovar_set') {
+    await membro.send('❌ Seu pedido de set foi **REPROVADO**.').catch(() => {});
+
+    await interaction.update({
+      content: `❌ Pedido reprovado por ${interaction.user}`,
+      components: [],
+      embeds: []
+    });
+  }
 }
+
 
   // ===== REGISTRO =====
   if (interaction.isChatInputCommand() && interaction.commandName === 'registrar') {
@@ -250,4 +298,5 @@ http.createServer((req, res) => {
 
 // ===== LOGIN =====
 client.login(process.env.TOKEN);
+
 
